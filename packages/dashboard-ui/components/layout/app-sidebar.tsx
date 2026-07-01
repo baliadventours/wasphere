@@ -172,7 +172,11 @@ export function AppSidebar({ demoMode = false }: { demoMode?: boolean }) {
       .then((d) => { setRole(d?.role ?? null); setCaps(Array.isArray(d?.capabilities) ? d.capabilities : null); })
       .catch(() => {});
   }, []);
-  const isManager = role === "OWNER" || role === "ADMIN";
+  // In demo mode there's no auth/role backend, so /api/team/my-role never
+  // resolves a role — treat the demo viewer as a manager so the full Core
+  // sidebar (Sessions, Inbox, Contacts, Messages, Webhooks, Team, Developer,
+  // Settings) is showcased instead of collapsing to just Overview.
+  const isManager = demoMode || role === "OWNER" || role === "ADMIN";
   const navItems = NAV_ITEMS.filter((i) => {
     if (i.always) return true;
     if (i.adminOnly) return isManager;
