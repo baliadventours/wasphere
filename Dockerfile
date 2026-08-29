@@ -12,16 +12,10 @@ COPY packages/dashboard-api/package.json ./packages/dashboard-api/
 COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
 COPY packages/wa-server/package.json ./packages/wa-server/
 
-# ✅ Install DULU tanpa postinstall (karena source belum ada)
 RUN pnpm install --no-frozen-lockfile --config.ignore-scripts=true
 
-# ✅ Baru copy source code
 COPY . .
-
-# ✅ Jalankan prisma generate SETELAH source ada
 RUN cd packages/dashboard-api && npx prisma generate
-
-# ✅ Build
 RUN pnpm run build
 
 # Stage 2: Production Runtime
@@ -41,13 +35,12 @@ COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
 COPY packages/wa-server/package.json ./packages/wa-server/
 COPY --from=builder /app/pnpm-lock.yaml ./
 
-# ✅ Install prod DULU tanpa postinstall
 RUN pnpm install --prod --no-frozen-lockfile --config.ignore-scripts=true
 
-# ✅ Copy source & generate prisma
-COPY --from=builder /app/packages ./packages
-RUN cd packages/dashboard-api && npx prisma generate
+COPY --from=builder /app/packages/dashboard-api/dist ./packages/dashboard-api/dist
+COPY --from=builder /app/packages/dashboard-api/prisma ./packages/dashboard-api/prisma
+COPY --from=builder /app/packages/dashboard-api/node_modules ./packages/dashboard-api/node_modules
 
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "packages/dashboard-api/dist/main.js"]
