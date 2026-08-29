@@ -6,13 +6,17 @@ WORKDIR /app
 # Enable corepack untuk pnpm
 RUN corepack enable
 
+# Copy pnpm-workspace.yaml TERLEBIH DAHULU
+# Agar pnpm tahu ini monorepo sebelum install
+COPY pnpm-workspace.yaml ./
+
 # Copy semua package.json (root + sub-packages)
 COPY package.json pnpm-lock.yaml ./
 COPY packages/dashboard-api/package.json ./packages/dashboard-api/
 COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
 COPY packages/wa-server/package.json ./packages/wa-server/
 
-# Install semua dependencies (termasuk devDependencies untuk build)
+# Install SEMUA dependencies (termasuk devDependencies untuk build)
 RUN pnpm install --frozen-lockfile
 
 # Copy semua source code
@@ -30,12 +34,14 @@ ENV NODE_ENV=production
 
 RUN corepack enable
 
+# Copy pnpm-workspace.yaml
+COPY pnpm-workspace.yaml ./
+
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 COPY packages/dashboard-api/package.json ./packages/dashboard-api/
 COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
 COPY packages/wa-server/package.json ./packages/wa-server/
-COPY pnpm-workspace.yaml ./
 
 # Install production dependencies only
 RUN pnpm install --prod --frozen-lockfile
