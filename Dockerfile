@@ -5,22 +5,17 @@ WORKDIR /app
 
 RUN corepack enable
 
-# ✅ Copy workspace config DULU
-COPY pnpm-workspace.yaml ./
+# ✅ Install git untuk dependency GitHub-based (libsignal-node)
+RUN apk add --no-cache git
 
-# ✅ Copy SEMUA package.json (root + sub-packages) SEBELUM install
+COPY pnpm-workspace.yaml ./
 COPY package.json ./
 COPY packages/dashboard-api/package.json ./packages/dashboard-api/
 COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
 COPY packages/wa-server/package.json ./packages/wa-server/
 
-# ✅ Install SEMUA dependencies (termasuk devDependencies untuk build)
 RUN pnpm install --no-frozen-lockfile
-
-# ✅ Baru copy source code
 COPY . .
-
-# ✅ Build
 RUN pnpm run build
 
 # Stage 2: Production Runtime
@@ -32,22 +27,17 @@ ENV NODE_ENV=production
 
 RUN corepack enable
 
-# ✅ Copy workspace config
-COPY pnpm-workspace.yaml ./
+# ✅ Install git juga di runner (untuk install dependency)
+RUN apk add --no-cache git
 
-# ✅ Copy SEMUA package.json lagi
+COPY pnpm-workspace.yaml ./
 COPY package.json ./
 COPY packages/dashboard-api/package.json ./packages/dashboard-api/
 COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
 COPY packages/wa-server/package.json ./packages/wa-server/
-
-# ✅ Copy lockfile dari builder (penting!)
 COPY --from=builder /app/pnpm-lock.yaml ./
 
-# ✅ Install production dependencies
 RUN pnpm install --prod --no-frozen-lockfile
-
-# ✅ Copy build output
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
