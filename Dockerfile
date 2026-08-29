@@ -3,11 +3,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Enable corepack untuk gunakan pnpm versi yang benar (9.0.0)
+RUN corepack enable
 
-COPY package*.json ./
-RUN pnpm install
+COPY package*.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 RUN pnpm run build
@@ -19,10 +19,10 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN npm install -g pnpm
+RUN corepack enable
 
-COPY package*.json ./
-RUN pnpm install --prod
+COPY package*.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 
 COPY --from=builder /app/dist ./dist
 
