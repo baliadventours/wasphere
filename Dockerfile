@@ -5,12 +5,20 @@ WORKDIR /app
 
 RUN corepack enable
 
-# ⚠️ INI YANG PENTING - workspace.yaml HARUS di-copy SEBELUM install
+# 1. Copy workspace config & SEMUA package.json dulu
 COPY pnpm-workspace.yaml ./
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
+COPY packages/dashboard-api/package.json ./packages/dashboard-api/
+COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
+COPY packages/wa-server/package.json ./packages/wa-server/
+
+# 2. Install SEMUA dependencies (termasuk devDependencies untuk build)
 RUN pnpm install --frozen-lockfile
 
+# 3. Baru copy source code
 COPY . .
+
+# 4. Build
 RUN pnpm run build
 
 # Stage 2: Production Runtime
@@ -22,10 +30,17 @@ ENV NODE_ENV=production
 
 RUN corepack enable
 
+# Copy workspace config & package.json
 COPY pnpm-workspace.yaml ./
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
+COPY packages/dashboard-api/package.json ./packages/dashboard-api/
+COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
+COPY packages/wa-server/package.json ./packages/wa-server/
+
+# Install prod dependencies saja
 RUN pnpm install --prod --frozen-lockfile
 
+# Copy build output
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
