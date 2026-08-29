@@ -3,13 +3,20 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Salin package file terlebih dahulu untuk caching layer
-COPY package*.json ./
-RUN npm install
+RUN corepack enable
 
-# Salin seluruh source code dan build aplikasi
+# ✅ Install git untuk dependency GitHub-based (libsignal-node)
+RUN apk add --no-cache git
+
+COPY pnpm-workspace.yaml ./
+COPY package.json ./
+COPY packages/dashboard-api/package.json ./packages/dashboard-api/
+COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
+COPY packages/wa-server/package.json ./packages/wa-server/
+
+RUN pnpm install --no-frozen-lockfile
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 # Stage 2: Production Runtime
 FROM node:20-alpine AS runner
@@ -18,15 +25,21 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Salin package file dan install hanya production dependencies
-COPY package*.json ./
-RUN npm install --only=production
+RUN corepack enable
 
-# Salin hasil build dari stage 1
+# ✅ Install git juga di runner (untuk install dependency)
+RUN apk add --no-cache git
+
+COPY pnpm-workspace.yaml ./
+COPY package.json ./
+COPY packages/dashboard-api/package.json ./packages/dashboard-api/
+COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
+COPY packages/wa-server/package.json ./packages/wa-server/
+COPY --from=builder /app/pnpm-lock.yaml ./
+
+RUN pnpm install --prod --no-frozen-lockfile
 COPY --from=builder /app/dist ./dist
 
-# Port aplikasi (sesuaikan jika app Anda memakai port selain 3000)
 EXPOSE 3000
 
-# Jalankan aplikasi
 CMD ["node", "dist/main.js"]
