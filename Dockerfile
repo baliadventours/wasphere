@@ -3,22 +3,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Enable corepack untuk pnpm
 RUN corepack enable
 
-# Copy semua package.json (root + sub-packages)
+# ⚠️ INI YANG PENTING - workspace.yaml HARUS di-copy SEBELUM install
+COPY pnpm-workspace.yaml ./
 COPY package.json pnpm-lock.yaml ./
-COPY packages/dashboard-api/package.json ./packages/dashboard-api/
-COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
-COPY packages/wa-server/package.json ./packages/wa-server/
-
-# Install semua dependencies (termasuk devDependencies untuk build)
 RUN pnpm install --frozen-lockfile
 
-# Copy semua source code
 COPY . .
-
-# Build semua packages
 RUN pnpm run build
 
 # Stage 2: Production Runtime
@@ -30,22 +22,12 @@ ENV NODE_ENV=production
 
 RUN corepack enable
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-COPY packages/dashboard-api/package.json ./packages/dashboard-api/
-COPY packages/dashboard-ui/package.json ./packages/dashboard-ui/
-COPY packages/wa-server/package.json ./packages/wa-server/
 COPY pnpm-workspace.yaml ./
-
-# Install production dependencies only
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
-# Copy build output dari semua packages
-COPY --from=builder /app/packages/dashboard-api/dist ./packages/dashboard-api/dist
-COPY --from=builder /app/packages/dashboard-ui/.next ./packages/dashboard-ui/.next
-COPY --from=builder /app/packages/dashboard-ui/public ./packages/dashboard-ui/public
-COPY --from=builder /app/packages/wa-server/dist ./packages/wa-server/dist
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["node", "packages/dashboard-api/dist/main.js"]
+CMD ["node", "dist/main.js"]
